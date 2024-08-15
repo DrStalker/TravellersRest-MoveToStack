@@ -61,14 +61,14 @@ namespace MoveToStack
         private static void PushToOpenContainer()
         {
 
-            int PlayerNum = 1; // I'm not sure how to actually get the player number for the player who triggered the input, so this is single player only for now
+            int playerNum = 1; // I'm not sure how to actually get the player number for the player who triggered the input, so this is single player only for now
 
 
             DebugLog(String.Format("PushToOpenContainer()"));
-            PlayerInventory pi = PlayerInventory.GetPlayer(PlayerNum);
+            PlayerInventory pi = PlayerInventory.GetPlayer(playerNum);
             if (pi is null)
             {
-                DebugLog(String.Format("PushToOpenContainer(): failed to get  PlayerInventory for player {0}", PlayerNum));
+                DebugLog(String.Format("PushToOpenContainer(): failed to get  PlayerInventory for player {0}", playerNum));
                 return;
             }
 
@@ -87,53 +87,84 @@ namespace MoveToStack
                 return;
             }
 
-            // Lets make a list of items in the dictioary and which slot they are in.
-            Dictionary<int, int> containerDict = new Dictionary<int, int>();
-
-            // ~~~~~~~~~~~~ Interate through Container Inventory Slots ~~~~~~~~~~~~~~~~~
-            for (int i = 0; i < targetContainer.containerSlots.Length; i++)
-            {
-                ItemInstance itemInstance = targetContainer.containerSlots[i].itemInstance;
-                if (itemInstance is null)
-                {
-                    //DebugLog(String.Format("PushToOpenContainer(): Container: slot[{0}]: no Item Instance;", i)); //empty slot
-                    continue;
-                }
-                else
-                {
-                    int amount = Traverse.Create(targetContainer.containerSlots[i]).Field("stack").GetValue<int>();
-                    Item baseItem = Traverse.Create(itemInstance).Field("item").GetValue<Item>();
-                    if (baseItem is null)
-                    {
-                        DebugLog(String.Format("PushToOpenContainer(): Container: slot[{0}]: ItemInstance has no Item, skipping", i));
-                        continue;
-                    }
-                    int baseItemId = Traverse.Create(baseItem).Field("id").GetValue<int>();
-                    containerDict.Add(baseItemId, i);
-                    DebugLog(String.Format("PushToOpenContainer(): Container: slot[{0}]: slotId:{1} itemid: {2} itemAmount: {3} maxAmount: {4} ", 
-                        i, targetContainer.containerSlots[i].id, baseItemId, amount, baseItem.amountStack));
-                }
-            }
-            // Lets make a list of items and an associated slotUI
-            Dictionary<int, SlotUI> containerDict2 = new Dictionary<int, SlotUI>();
+              // Lets make a list of items and an associated slotUI
+            Dictionary<int, SlotUI> containerDict = new Dictionary<int, SlotUI>();
             // ~~~~~~~~~~~~ Interate through Container Inventory Slots using the SlotUIList ~~~~~~~~~~~~~~~~~
-            
-            // [Error: Unity Log] NullReferenceException: Object reference not set to an instance of an object
+
+            DebugLog(String.Format("PushToOpenContainer(): ~~~~~ Iterating through ContainerUI slotsUI<> ~~~~~"));
 
             List<SlotUI> reflectedSlotsUI = Traverse.Create(targetContainer).Field("slotsUI").GetValue<List<SlotUI>>();
-            foreach (SlotUI slotUI in reflectedSlotsUI)
+            if (reflectedSlotsUI == null)
             {
-                Slot reflectedSlot = Traverse.Create(slotUI).Field("Slot").GetValue<Slot>();
+                DebugLog(String.Format("PushToOpenContainer(): Could not find  slotsUI! ~~~~~"));
+               
+            }
+            else
+            {
+                foreach (SlotUI slotUI in reflectedSlotsUI)
+                {
+                    Slot reflectedSlot = Traverse.Create(slotUI).Field("slot").GetValue<Slot>();
+                    if (reflectedSlot is null)
+                    {
+                        DebugLog(String.Format("PushToOpenContainer(): Container: reflectedSlot is null: slotUI<{0}>", slotUI.name));
+                        continue;
+                    }
+                    ItemInstance itemInstance = reflectedSlot.itemInstance;
+                    if (itemInstance is null) continue; //empty slot
+                    int amount = Traverse.Create(reflectedSlot).Field("stack").GetValue<int>();
+                    Item baseItem = Traverse.Create(itemInstance).Field("item").GetValue<Item>();
+                    if (baseItem is null) continue; // DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0}]: ItemInstance has no Item, skipping"));  //Normal thing to happen?
+                    int baseItemId = Traverse.Create(baseItem).Field("id").GetValue<int>();
+                    DebugLog(String.Format("PushToOpenContainer(): ContainerUI.slotsUI<{3}>: found itemid: {0} itemAmount: {1} maxAmount: {2}", baseItemId, amount, baseItem.amountStack, slotUI.name));
+                    SlotUI x = slotUI;
+                    if (!containerDict.ContainsKey(baseItemId)) containerDict.Add(baseItemId, x); //if I put a local object in here I hope it remains after the local object goes out of scope... I think it will.
+                }
+            }
+
+            // ~~~~~~~~~~~~ Interate through Player Inventory Slots ~~~~~~~~~~~~~~~~~
+            GameInventoryUI gi = GameInventoryUI.Get(playerNum);
+            if (gi == null)
+            {
+                DebugLog(String.Format("PushToOpenContainer(): failed to get GameInventory for player {0}", playerNum));
+                return;
+            }
+            for (int i = 0; i < gi.slotsUI.Length; i++)
+            {
+                Slot reflectedSlot = Traverse.Create(gi.slotsUI[i]).Field("slot").GetValue<Slot>();
+                if (reflectedSlot is null)
+                {
+                    DebugLog(String.Format("PushToOpenContainer(): Inventory: reflectedSlot is null: slotUI<{0}>", gi.slotsUI[i].name));
+                    continue;
+                }
                 ItemInstance itemInstance = reflectedSlot.itemInstance;
                 if (itemInstance is null) continue; //empty slot
                 int amount = Traverse.Create(reflectedSlot).Field("stack").GetValue<int>();
                 Item baseItem = Traverse.Create(itemInstance).Field("item").GetValue<Item>();
                 if (baseItem is null) continue; // DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0}]: ItemInstance has no Item, skipping"));  //Normal thing to happen?
                 int baseItemId = Traverse.Create(baseItem).Field("id").GetValue<int>();
-                DebugLog(String.Format("PushToOpenContainer(): ContainerUI.slotsUI<{3}>: found itemid: {0} itemAmount: {1} maxAmount: {2}", baseItemId, amount, baseItem.amountStack, slotUI.name));
-                SlotUI x = slotUI;
-                containerDict2.Add(baseItemId, x); //if I put a local object in here I hope it remains after the local object goes out of scope... I think it will.
+                DebugLog(String.Format("PushToOpenContainer(): GameInventoryUI.slotsUI<{3}>: found itemid: {0} itemAmount: {1} maxAmount: {2}", baseItemId, amount, baseItem.amountStack, gi.slotsUI[i].name));
+                if (containerDict.ContainsKey(baseItemId))
+                {
+                    // We found a thing in player inventory which is also in container, so try to move it into the container.
+                    DebugLog(String.Format("PushToOpenContainer(): Found Matching items! Player: slotsUI[{0:D2}] Container: slotsUI<>: {1} itemid:{2}", i, containerDict[baseItemId].name, baseItemId));
+                    gi.slotsUI[i].DoAutomaticTransfer(playerNum);
+
+                    /*
+                    // Look @ SlotUI.OnPointerDown(PointerEventData MNCOHKJDJIM) <-- This is SlotUI function that does stuff on a right click
+                    Get the private slot, repalce "this" with the SlotUI object....
+
+                    if ((PointerEventData).button == PointerEventData.InputButton.Right)
+		                {
+			                this.OnSlotRightClick(this.playerNum, this.{private}slot);
+			                this.OnSlotRightClickId(this.playerNum, this.{private}slot, (this.{private}slot != null) ? this.{private}slot.id : 0);
+			                this.FillTooltip(this.playerNum);
+			                return;
+		                }
+
+                    */
+                }
             }
+
 
 
             // ~~~~~~~~~~~~ Interate through Player Inventory Slots ~~~~~~~~~~~~~~~~~
@@ -159,35 +190,41 @@ namespace MoveToStack
                 DebugLog(String.Format("PushToOpenContainer(): found Player Inventory Slots, but it's an array of length 0"));
                 return;
             }
-            //DebugLog(String.Format("PushToOpenContainer(): Looking through Player Inventory Slots[]"));
-            for (int i=0;i<reflectedSlots.Length;i++)
-            {
-                ItemInstance itemInstance = reflectedSlots[i].itemInstance;
-                if (itemInstance is null)
+            else
+            { 
+                DebugLog(String.Format("PushToOpenContainer(): ~~~~~ Iterating through PlayerInventory Slots[]~~~~~"));
+                for (int i = 0; i < reflectedSlots.Length; i++)
                 {
-                    // DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0:D2}]: no Item Instance;", i)); //empty slot
-                    continue;
-                }
-                else
-                {
-                    int amount = Traverse.Create(reflectedSlots[i]).Field("stack").GetValue<int>();
-                    Item baseItem = Traverse.Create(itemInstance).Field("item").GetValue<Item>(); 
-                    if (baseItem is null)
+                    ItemInstance itemInstance = reflectedSlots[i].itemInstance;
+                    if (itemInstance is null)
                     {
-                        DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0}]: ItemInstance has no Item, skipping",i));
+                        // DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0:D2}]: no Item Instance;", i)); //empty slot
                         continue;
                     }
-                    int baseItemId = Traverse.Create(baseItem).Field("id").GetValue<int>();
-                    DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0}]: slotId:{1:D2} itemid: {2} itemAmount: {3} maxAmount: {4} "
-                        , i, reflectedSlots[i].id, baseItemId, amount, baseItem.amountStack));
-                    // See if this type of item is already in the container
-                    if (containerDict.ContainsKey(baseItemId))
+                    else
                     {
-                        DebugLog(String.Format("PushToOpenContainer(): Found Matching items! Player: [{0:D2}] Container: [{1:D2}] id:{2}", i, containerDict[baseItemId], baseItemId));
-                        DebugLog(String.Format("PushToOpenContainer(): Found Matching items! Player: [{0:D2}] Container: [{1:D2}] id:{2}", i, containerDict2[baseItemId].name, baseItemId));
-
-
-
+                        int amount = Traverse.Create(reflectedSlots[i]).Field("stack").GetValue<int>();
+                        Item baseItem = Traverse.Create(itemInstance).Field("item").GetValue<Item>();
+                        if (baseItem is null)
+                        {
+                            //DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0}]: ItemInstance has no Item, skipping", i));
+                            continue;
+                        }
+                        int baseItemId = Traverse.Create(baseItem).Field("id").GetValue<int>();
+                        DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0}]: slotId:{1:D2} itemid: {2} itemAmount: {3} maxAmount: {4} "
+                            , i, reflectedSlots[i].id, baseItemId, amount, baseItem.amountStack));
+                        // See if this type of item is already in the container
+                        /*
+                        if (containerDict.ContainsKey(baseItemId))
+                        {
+                            DebugLog(String.Format("PushToOpenContainer(): Found Matching items! Player: [{0:D2}] containerSlots[]: [{1:D2}] id:{2}", i, containerDict[baseItemId], baseItemId));
+                        }
+                        */
+                        if (containerDict.ContainsKey(baseItemId))
+                        {
+                            DebugLog(String.Format("PushToOpenContainer(): Found Matching items! Player: [{0:D2}] slotsUI<>:        <{1:D2}> id:{2}", i, containerDict[baseItemId].name, baseItemId));
+                            containerDict[baseItemId].DoAutomaticTransfer(playerNum);
+                        }
                     }
                 }
             }
