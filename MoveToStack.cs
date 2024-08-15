@@ -62,7 +62,7 @@ namespace MoveToStack
         {
 
             int playerNum = 1; // I'm not sure how to actually get the player number for the player who triggered the input, so this is single player only for now
-
+            int stacksMoved = 0;
 
             DebugLog(String.Format("PushToOpenContainer()"));
             PlayerInventory pi = PlayerInventory.GetPlayer(playerNum);
@@ -115,7 +115,7 @@ namespace MoveToStack
                     Item baseItem = Traverse.Create(itemInstance).Field("item").GetValue<Item>();
                     if (baseItem is null) continue; // DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0}]: ItemInstance has no Item, skipping"));  //Normal thing to happen?
                     int baseItemId = Traverse.Create(baseItem).Field("id").GetValue<int>();
-                    DebugLog(String.Format("PushToOpenContainer(): ContainerUI.slotsUI<{3}>: found itemid: {0} itemAmount: {1} maxAmount: {2}", baseItemId, amount, baseItem.amountStack, slotUI.name));
+                    //DebugLog(String.Format("PushToOpenContainer(): ContainerUI.slotsUI<{3}>: found itemid: {0} itemAmount: {1} maxAmount: {2}", baseItemId, amount, baseItem.amountStack, slotUI.name));
                     SlotUI x = slotUI;
                     if (!containerDict.ContainsKey(baseItemId)) containerDict.Add(baseItemId, x); //if I put a local object in here I hope it remains after the local object goes out of scope... I think it will.
                 }
@@ -142,7 +142,7 @@ namespace MoveToStack
                 Item baseItem = Traverse.Create(itemInstance).Field("item").GetValue<Item>();
                 if (baseItem is null) continue; // DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0}]: ItemInstance has no Item, skipping"));  //Normal thing to happen?
                 int baseItemId = Traverse.Create(baseItem).Field("id").GetValue<int>();
-                DebugLog(String.Format("PushToOpenContainer(): GameInventoryUI.slotsUI<{3}>: found itemid: {0} itemAmount: {1} maxAmount: {2}", baseItemId, amount, baseItem.amountStack, gi.slotsUI[i].name));
+                //DebugLog(String.Format("PushToOpenContainer(): GameInventoryUI.slotsUI<{3}>: found itemid: {0} itemAmount: {1} maxAmount: {2}", baseItemId, amount, baseItem.amountStack, gi.slotsUI[i].name));
                 if (containerDict.ContainsKey(baseItemId))
                 {
                     // We found a thing in player inventory which is also in container, so try to move it into the container.
@@ -151,126 +151,27 @@ namespace MoveToStack
                     gi.slotsUI[i].OnSlotRightClick(playerNum, reflectedSlot);
                     gi.slotsUI[i].OnSlotRightClickId(playerNum, reflectedSlot, (reflectedSlot != null) ? reflectedSlot.id : 0);
                     //gi.slotsUI[i].FillTooltip(playerNum);
-
-                    /*
-                    // Look @ SlotUI.OnPointerDown(PointerEventData MNCOHKJDJIM) <-- This is SlotUI function that does stuff on a right click
-                    Get the private slot, repalce "this" with the SlotUI object....
-
-                    if ((PointerEventData).button == PointerEventData.InputButton.Right)
-		                {
-			                this.OnSlotRightClick(this.playerNum, this.{private}slot);
-			                this.OnSlotRightClickId(this.playerNum, this.{private}slot, (this.{private}slot != null) ? this.{private}slot.id : 0);
-			                this.FillTooltip(this.playerNum);
-			                return;
-		                }
-
-                    */
+                    stacksMoved++;
                 }
             }
-
-
-
-            // ~~~~~~~~~~~~ Interate through Player Inventory Slots ~~~~~~~~~~~~~~~~~
-            // Lots of reflection needed here.  
-            Slot[] reflectedSlots = null;
-            FieldInfo[] piFieldInfo = pi.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Instance); //all private fields.
-            foreach (FieldInfo fi in piFieldInfo) // now look for the one of type Slot[]
-            {
-                if (fi.FieldType == typeof(Slot[]))
-                {
-                    reflectedSlots = (Slot[])fi.GetValue(pi);
-                    break;
-
-                }
-            }
-            if (reflectedSlots == null)
-            {
-                DebugLog(String.Format("PushToOpenContainer(): failed to get Player Inventory Slots"));
-                return;
-            }
-            else if (reflectedSlots.Length == 0)
-            {
-                DebugLog(String.Format("PushToOpenContainer(): found Player Inventory Slots, but it's an array of length 0"));
-                return;
-            }
-            else
-            { 
-                DebugLog(String.Format("PushToOpenContainer(): ~~~~~ Iterating through PlayerInventory Slots[]~~~~~"));
-                for (int i = 0; i < reflectedSlots.Length; i++)
-                {
-                    ItemInstance itemInstance = reflectedSlots[i].itemInstance;
-                    if (itemInstance is null)
-                    {
-                        // DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0:D2}]: no Item Instance;", i)); //empty slot
-                        continue;
-                    }
-                    else
-                    {
-                        int amount = Traverse.Create(reflectedSlots[i]).Field("stack").GetValue<int>();
-                        Item baseItem = Traverse.Create(itemInstance).Field("item").GetValue<Item>();
-                        if (baseItem is null)
-                        {
-                            //DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0}]: ItemInstance has no Item, skipping", i));
-                            continue;
-                        }
-                        int baseItemId = Traverse.Create(baseItem).Field("id").GetValue<int>();
-                        DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0}]: slotId:{1:D2} itemid: {2} itemAmount: {3} maxAmount: {4} "
-                            , i, reflectedSlots[i].id, baseItemId, amount, baseItem.amountStack));
-                        // See if this type of item is already in the container
-                        /*
-                        if (containerDict.ContainsKey(baseItemId))
-                        {
-                            DebugLog(String.Format("PushToOpenContainer(): Found Matching items! Player: [{0:D2}] containerSlots[]: [{1:D2}] id:{2}", i, containerDict[baseItemId], baseItemId));
-                        }
-                        */
-                        if (containerDict.ContainsKey(baseItemId))
-                        {
-                            DebugLog(String.Format("PushToOpenContainer(): Found Matching items! Player: [{0:D2}] slotsUI<>:        <{1:D2}> id:{2}", i, containerDict[baseItemId].name, baseItemId));
-                            containerDict[baseItemId].DoAutomaticTransfer(playerNum);
-                        }
-                    }
-                }
-            }
+            DebugLog(String.Format("PushToOpenContainer(): Moved {0} Stacks", stacksMoved));
         }
     }
 }
 /*
 Now, where is the code that actually moves items?
-SlotUI.DoAutomaticTransfer(int) ?
+SlotUI.DoAutomaticTransfer(int) ? Moves one item, is used on container moves 1 item TO player.
 
+            
+For stack move on right mouseclick, SlotUI.OnPointerDown(PointerEventData MNCOHKJDJIM) 
 
-
-PlayerInputs.Update(), 
-    if (MainUI.IsAnyUIOpen(this.playerNum))  this.LDBMPKBDOLF()
-					SlotUI component = UISelectionManager.GetPlayer(this.playerNum).KFMOIOEMONB.GetComponent<SlotUI>();
-					if (component && component.autoTransferEnabled)
-					{
-						component.DoAutomaticTransfer(this.playerNum);
-						return;
-					}
-			
-
-ContainerUI contains  protected List<SlotUI> slotsUI;
-    each SlotUI each contains a Slot (private Slot slot);
-
-Maybe iterate through that and trigger SlotUI.DoAutomaticTransfer(int) on a match? The int is for "player number"
-
-InventoryUI.slotsUI? What is we iterate throiugh that?
-GameInventoryUI? MainInventoryUI? both extend InventoryUI
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+if ((PointerEventData).button == PointerEventData.InputButton.Right)
+	{
+		this.OnSlotRightClick(this.playerNum, this.{private}slot);
+		this.OnSlotRightClickId(this.playerNum, this.{private}slot, (this.{private}slot != null) ? this.{private}slot.id : 0);
+		this.FillTooltip(this.playerNum);
+		return;
+	}
 
 
 
