@@ -3,7 +3,11 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 using System;
+using System.Reflection;
 using UnityEngine;
+using UnityEngine.UIElements;
+using System.Collections.Generic;
+using System.Collections;
 
 namespace MoveToStack
 {
@@ -21,7 +25,7 @@ namespace MoveToStack
         {
             // bind to config settings
             _debugLogging = Config.Bind("Debug", "Debug Logging", false, "Logs additional information to console");
-            _MoveToStackHotKey = Config.Bind("General", "HotKey", KeyCode.F10, "Press to activate mod");
+            _MoveToStackHotKey = Config.Bind("General", "HotKey", KeyCode.Z, "Press to activate mod");
         }
 
         private void Awake()
@@ -79,6 +83,72 @@ namespace MoveToStack
             {
                 DebugLog(String.Format("PushToOpenContainer(): failed to find an open container"));
                 return;
+            }
+
+            // Lets make a list of items in the dictioary and which slot they are in.
+            Dictionary<int, int> containerDict = new Dictionary<int, int>();
+
+            // ~~~~~~~~~~~~ Interate through Container Inventory Slots ~~~~~~~~~~~~~~~~~
+            for (int i = 0; i < targetContainer.containerSlots.Length; i++)
+            {
+                ItemInstance itemInstance = targetContainer.containerSlots[i].itemInstance;
+                if (itemInstance is null)
+                {
+                    DebugLog(String.Format("PushToOpenContainer(): Container: slot[{0}]: no Item Instance;", i));
+                    continue;
+                }
+                else
+                {
+                    int amount = Traverse.Create(targetContainer.containerSlots[i]).Field("stack").GetValue<int>();
+                    Item baseItem = Traverse.Create(itemInstance).Field("item").GetValue<Item>(); // There Should never be an ItemInstance without an Item, right?
+                    int baseItemId = Traverse.Create(baseItem).Field("id").GetValue<int>();
+                    DebugLog(String.Format("PushToOpenContainer(): Container: slot[{0}]: slotId:{1} itemid: {2} itemAmount: {3} maxAmount: {4} ", 
+                        i, targetContainer.containerSlots[i].id, baseItemId, amount, baseItem.amountStack));
+                }
+            }
+
+
+
+            // ~~~~~~~~~~~~ Interate through Player Inventory Slots ~~~~~~~~~~~~~~~~~
+            Slot[] reflectedSlots = null;
+            FieldInfo[] piFieldInfo = pi.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Instance); //all private fields.
+            foreach (FieldInfo fi in piFieldInfo)
+            {
+                if (fi.FieldType == typeof(Slot[]))
+                {
+                    reflectedSlots = (Slot[])fi.GetValue(pi);
+                    break;
+
+                }
+            }
+            if (reflectedSlots == null)
+            {
+                DebugLog(String.Format("PushToOpenContainer(): failed to get Player Inventory Slots"));
+                return;
+            }
+            else if (reflectedSlots.Length == 0)
+            {
+                DebugLog(String.Format("PushToOpenContainer(): found Player Inventory Slots, but it's an array of length 0"));
+                return;
+            }
+            DebugLog(String.Format("PushToOpenContainer(): Looking through Player Inventory Slots[]"));
+            for (int i=0;i<reflectedSlots.Length;i++)
+            {
+                ItemInstance itemInstance = reflectedSlots[i].itemInstance;
+                if (itemInstance is null)
+                {
+                    DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0}]: no Item Instance;", i));
+                    continue;
+                }
+                else
+                {
+                    int amount = Traverse.Create(reflectedSlots[i]).Field("stack").GetValue<int>();
+                    Item baseItem = Traverse.Create(itemInstance).Field("item").GetValue<Item>(); // There Should never be an ItemInstance without an Item, right?
+                    int baseItemId = Traverse.Create(baseItem).Field("id").GetValue<int>();
+                    DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0}]: slotId:{1} itemid: {2} itemAmount: {3} maxAmount: {4} "
+                        , i, reflectedSlots[i].id, baseItemId, amount, baseItem.amountStack));
+                }
+
             }
 
 
