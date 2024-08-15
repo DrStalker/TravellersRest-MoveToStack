@@ -102,6 +102,7 @@ namespace MoveToStack
                     int amount = Traverse.Create(targetContainer.containerSlots[i]).Field("stack").GetValue<int>();
                     Item baseItem = Traverse.Create(itemInstance).Field("item").GetValue<Item>(); // There Should never be an ItemInstance without an Item, right?
                     int baseItemId = Traverse.Create(baseItem).Field("id").GetValue<int>();
+                    containerDict.Add(baseItemId, i);
                     DebugLog(String.Format("PushToOpenContainer(): Container: slot[{0}]: slotId:{1} itemid: {2} itemAmount: {3} maxAmount: {4} ", 
                         i, targetContainer.containerSlots[i].id, baseItemId, amount, baseItem.amountStack));
                 }
@@ -137,24 +138,28 @@ namespace MoveToStack
                 ItemInstance itemInstance = reflectedSlots[i].itemInstance;
                 if (itemInstance is null)
                 {
-                    DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0}]: no Item Instance;", i));
+                    DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0:D2}]: no Item Instance;", i));
                     continue;
                 }
                 else
                 {
                     int amount = Traverse.Create(reflectedSlots[i]).Field("stack").GetValue<int>();
-                    Item baseItem = Traverse.Create(itemInstance).Field("item").GetValue<Item>(); // There Should never be an ItemInstance without an Item, right?
+                    Item baseItem = Traverse.Create(itemInstance).Field("item").GetValue<Item>(); 
+                    if (baseItem is null)
+                    {
+                        DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0}]: ItemInstance has no Item, skipping",i));
+                        continue;
+                    }
                     int baseItemId = Traverse.Create(baseItem).Field("id").GetValue<int>();
-                    DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0}]: slotId:{1} itemid: {2} itemAmount: {3} maxAmount: {4} "
+                    DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0}]: slotId:{1:D2} itemid: {2} itemAmount: {3} maxAmount: {4} "
                         , i, reflectedSlots[i].id, baseItemId, amount, baseItem.amountStack));
+                    // See if this type of item is already in the container
+                    if (containerDict.ContainsKey(baseItemId))
+                    {
+                        DebugLog(String.Format("PushToOpenContainer(): Found Matching items! Player: [{0:D2}] Container: [{1:D2}] id:{2}", i, containerDict[baseItemId], baseItemId));
+                    }
                 }
-
             }
-
-
-
-
         }
-
     }
 }
