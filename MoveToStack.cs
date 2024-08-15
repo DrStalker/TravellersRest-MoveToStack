@@ -147,7 +147,10 @@ namespace MoveToStack
                 {
                     // We found a thing in player inventory which is also in container, so try to move it into the container.
                     DebugLog(String.Format("PushToOpenContainer(): Found Matching items! Player: slotsUI[{0:D2}] Container: slotsUI<>: {1} itemid:{2}", i, containerDict[baseItemId].name, baseItemId));
-                    gi.slotsUI[i].DoAutomaticTransfer(playerNum);
+                    //based on code in SlotUI.OnPointerDown(PointerEventData MNCOHKJDJIM)
+                    gi.slotsUI[i].OnSlotRightClick(playerNum, reflectedSlot);
+                    gi.slotsUI[i].OnSlotRightClickId(playerNum, reflectedSlot, (reflectedSlot != null) ? reflectedSlot.id : 0);
+                    //gi.slotsUI[i].FillTooltip(playerNum);
 
                     /*
                     // Look @ SlotUI.OnPointerDown(PointerEventData MNCOHKJDJIM) <-- This is SlotUI function that does stuff on a right click
