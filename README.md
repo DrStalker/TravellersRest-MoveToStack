@@ -1,10 +1,10 @@
-# TravellersRest-ModNameHere
+# TravellersRest-MoveToStack
 
-A Traveller's Rest mod to DESCRIPTION
+A Traveller's Rest mod that adds a hotkey to move items in your inventory to matching stacks in a container.  By default the hotkey is Z.
 
 ## Downloading the mod
 
-Adding Traveller's Rest to Nexus Mods is in progress, until that is complete you can download the mod from [compiled-releases](https://github.com/DrStalker/TravellersRest-ModNameHere/tree/main/compiled-releases)
+Mods are available on [Nexus Mods](https://www.nexusmods.com/travellersrest) or you can download the mod from [compiled-releases](https://github.com/DrStalker/TravellersRest-MoveToStack/tree/main/compiled-releases)
 
 
 ## How to install mods:
