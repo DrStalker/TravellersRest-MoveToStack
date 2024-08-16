@@ -64,7 +64,7 @@ namespace MoveToStack
             int playerNum = 1; // I'm not sure how to actually get the player number for the player who triggered the input, so this is single player only for now
             int stacksMoved = 0;
 
-            DebugLog(String.Format("PushToOpenContainer()"));
+            DebugLog(String.Format("PushToOpenContainer(): Starting"));
             PlayerInventory pi = PlayerInventory.GetPlayer(playerNum);
             if (pi is null)
             {
@@ -91,8 +91,6 @@ namespace MoveToStack
             Dictionary<int, SlotUI> containerDict = new Dictionary<int, SlotUI>();
             // ~~~~~~~~~~~~ Interate through Container Inventory Slots using the SlotUIList ~~~~~~~~~~~~~~~~~
 
-            DebugLog(String.Format("PushToOpenContainer(): ~~~~~ Iterating through ContainerUI slotsUI<> ~~~~~"));
-
             List<SlotUI> reflectedSlotsUI = Traverse.Create(targetContainer).Field("slotsUI").GetValue<List<SlotUI>>();
             if (reflectedSlotsUI == null)
             {
@@ -113,7 +111,7 @@ namespace MoveToStack
                     if (itemInstance is null) continue; //empty slot
                     int amount = Traverse.Create(reflectedSlot).Field("stack").GetValue<int>();
                     Item baseItem = Traverse.Create(itemInstance).Field("item").GetValue<Item>();
-                    if (baseItem is null) continue; // DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0}]: ItemInstance has no Item, skipping"));  //Normal thing to happen?
+                    if (baseItem is null) continue;  //Normal thing to happen?
                     int baseItemId = Traverse.Create(baseItem).Field("id").GetValue<int>();
                     //DebugLog(String.Format("PushToOpenContainer(): ContainerUI.slotsUI<{3}>: found itemid: {0} itemAmount: {1} maxAmount: {2}", baseItemId, amount, baseItem.amountStack, slotUI.name));
                     SlotUI x = slotUI;
@@ -140,21 +138,20 @@ namespace MoveToStack
                 if (itemInstance is null) continue; //empty slot
                 int amount = Traverse.Create(reflectedSlot).Field("stack").GetValue<int>();
                 Item baseItem = Traverse.Create(itemInstance).Field("item").GetValue<Item>();
-                if (baseItem is null) continue; // DebugLog(String.Format("PushToOpenContainer(): Player: slot[{0}]: ItemInstance has no Item, skipping"));  //Normal thing to happen?
+                if (baseItem is null) continue; //Normal thing to happen?
                 int baseItemId = Traverse.Create(baseItem).Field("id").GetValue<int>();
                 //DebugLog(String.Format("PushToOpenContainer(): GameInventoryUI.slotsUI<{3}>: found itemid: {0} itemAmount: {1} maxAmount: {2}", baseItemId, amount, baseItem.amountStack, gi.slotsUI[i].name));
                 if (containerDict.ContainsKey(baseItemId))
                 {
                     // We found a thing in player inventory which is also in container, so try to move it into the container.
-                    DebugLog(String.Format("PushToOpenContainer(): Found Matching items! Player: slotsUI[{0:D2}] Container: slotsUI<>: {1} itemid:{2}", i, containerDict[baseItemId].name, baseItemId));
+                    DebugLog(String.Format("PushToOpenContainer(): Found Matching items: Player: slotsUI[{0:D2}] Container: slotsUI<>: {1} itemid:{2}", i, containerDict[baseItemId].name, baseItemId));
                     //based on code in SlotUI.OnPointerDown(PointerEventData MNCOHKJDJIM)
                     gi.slotsUI[i].OnSlotRightClick(playerNum, reflectedSlot);
                     gi.slotsUI[i].OnSlotRightClickId(playerNum, reflectedSlot, (reflectedSlot != null) ? reflectedSlot.id : 0);
-                    //gi.slotsUI[i].FillTooltip(playerNum);
                     stacksMoved++;
                 }
             }
-            DebugLog(String.Format("PushToOpenContainer(): Moved {0} Stacks", stacksMoved));
+            DebugLog(String.Format("PushToOpenContainer(): Sent {0} Stacks to the Container", stacksMoved));
         }
     }
 }
