@@ -1,6 +1,8 @@
 # TravellersRest-MoveToStack
 
-A Traveller's Rest mod that adds a hotkey to move items in your inventory to matching stacks in a container.  By default the hotkey is Z.
+A Traveller's Rest mod that adds a hotkey to trigger the "store all matching" button.  By default the hotkey is Z.
+
+Version 1.0.0 used custom code to find and move items, version 2.0.0 triggers the existing functionality making it more reliable and consistent with using the mouse to click the button.
 
 ## Downloading the mod
 

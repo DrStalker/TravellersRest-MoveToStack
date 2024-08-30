@@ -61,17 +61,6 @@ namespace MoveToStack
         private static void PushToOpenContainer()
         {
 
-            int playerNum = 1; // I'm not sure how to actually get the player number for the player who triggered the input, so this is single player only for now
-            int stacksMoved = 0;
-
-            DebugLog(String.Format("PushToOpenContainer(): Starting"));
-            PlayerInventory pi = PlayerInventory.GetPlayer(playerNum);
-            if (pi is null)
-            {
-                DebugLog(String.Format("PushToOpenContainer(): failed to get  PlayerInventory for player {0}", playerNum));
-                return;
-            }
-
             ContainerUI targetContainer = null;
             foreach (ContainerUI cui in UnityEngine.Object.FindObjectsOfType<ContainerUI>())
             {
@@ -86,90 +75,8 @@ namespace MoveToStack
                 DebugLog(String.Format("PushToOpenContainer(): failed to find an open container"));
                 return;
             }
-
-              // Lets make a list of items and an associated slotUI
-            Dictionary<int, SlotUI> containerDict = new Dictionary<int, SlotUI>();
-            // ~~~~~~~~~~~~ Interate through Container Inventory Slots using the SlotUIList ~~~~~~~~~~~~~~~~~
-
-            List<SlotUI> reflectedSlotsUI = Traverse.Create(targetContainer).Field("slotsUI").GetValue<List<SlotUI>>();
-            if (reflectedSlotsUI == null)
-            {
-                DebugLog(String.Format("PushToOpenContainer(): Could not find  slotsUI! ~~~~~"));
-               
-            }
-            else
-            {
-                foreach (SlotUI slotUI in reflectedSlotsUI)
-                {
-                    Slot reflectedSlot = Traverse.Create(slotUI).Field("slot").GetValue<Slot>();
-                    if (reflectedSlot is null)
-                    {
-                        DebugLog(String.Format("PushToOpenContainer(): Container: reflectedSlot is null: slotUI<{0}>", slotUI.name));
-                        continue;
-                    }
-                    ItemInstance itemInstance = reflectedSlot.itemInstance;
-                    if (itemInstance is null) continue; //empty slot
-                    int amount = Traverse.Create(reflectedSlot).Field("stack").GetValue<int>();
-                    Item baseItem = Traverse.Create(itemInstance).Field("item").GetValue<Item>();
-                    if (baseItem is null) continue;  //Normal thing to happen?
-                    int baseItemId = Traverse.Create(baseItem).Field("id").GetValue<int>();
-                    //DebugLog(String.Format("PushToOpenContainer(): ContainerUI.slotsUI<{3}>: found itemid: {0} itemAmount: {1} maxAmount: {2}", baseItemId, amount, baseItem.amountStack, slotUI.name));
-                    SlotUI x = slotUI;
-                    if (!containerDict.ContainsKey(baseItemId)) containerDict.Add(baseItemId, x); //if I put a local object in here I hope it remains after the local object goes out of scope... I think it will.
-                }
-            }
-
-            // ~~~~~~~~~~~~ Interate through Player Inventory Slots ~~~~~~~~~~~~~~~~~
-            GameInventoryUI gi = GameInventoryUI.Get(playerNum);
-            if (gi == null)
-            {
-                DebugLog(String.Format("PushToOpenContainer(): failed to get GameInventory for player {0}", playerNum));
-                return;
-            }
-            for (int i = 0; i < gi.slotsUI.Length; i++)
-            {
-                Slot reflectedSlot = Traverse.Create(gi.slotsUI[i]).Field("slot").GetValue<Slot>();
-                if (reflectedSlot is null)
-                {
-                    DebugLog(String.Format("PushToOpenContainer(): Inventory: reflectedSlot is null: slotUI<{0}>", gi.slotsUI[i].name));
-                    continue;
-                }
-                ItemInstance itemInstance = reflectedSlot.itemInstance;
-                if (itemInstance is null) continue; //empty slot
-                int amount = Traverse.Create(reflectedSlot).Field("stack").GetValue<int>();
-                Item baseItem = Traverse.Create(itemInstance).Field("item").GetValue<Item>();
-                if (baseItem is null) continue; //Normal thing to happen?
-                int baseItemId = Traverse.Create(baseItem).Field("id").GetValue<int>();
-                //DebugLog(String.Format("PushToOpenContainer(): GameInventoryUI.slotsUI<{3}>: found itemid: {0} itemAmount: {1} maxAmount: {2}", baseItemId, amount, baseItem.amountStack, gi.slotsUI[i].name));
-                if (containerDict.ContainsKey(baseItemId))
-                {
-                    // We found a thing in player inventory which is also in container, so try to move it into the container.
-                    DebugLog(String.Format("PushToOpenContainer(): Found Matching items: Player: slotsUI[{0:D2}] Container: slotsUI<>: {1} itemid:{2}", i, containerDict[baseItemId].name, baseItemId));
-                    //based on code in SlotUI.OnPointerDown(PointerEventData MNCOHKJDJIM)
-                    gi.slotsUI[i].OnSlotRightClick(playerNum, reflectedSlot);
-                    gi.slotsUI[i].OnSlotRightClickId(playerNum, reflectedSlot, (reflectedSlot != null) ? reflectedSlot.id : 0);
-                    stacksMoved++;
-                }
-            }
-            DebugLog(String.Format("PushToOpenContainer(): Sent {0} Stacks to the Container", stacksMoved));
+            targetContainer.FindAndAddItemsFromInventory();
+            DebugLog(String.Format("PushToOpenContainer(): Called ContainerUI.FindAndAddItemsFromInventory()"));
         }
     }
 }
-/*
-Now, where is the code that actually moves items?
-SlotUI.DoAutomaticTransfer(int) ? Moves one item, is used on container moves 1 item TO player.
-
-            
-For stack move on right mouseclick, SlotUI.OnPointerDown(PointerEventData MNCOHKJDJIM) 
-
-if ((PointerEventData).button == PointerEventData.InputButton.Right)
-	{
-		this.OnSlotRightClick(this.playerNum, this.{private}slot);
-		this.OnSlotRightClickId(this.playerNum, this.{private}slot, (this.{private}slot != null) ? this.{private}slot.id : 0);
-		this.FillTooltip(this.playerNum);
-		return;
-	}
-
-
-
-*/
